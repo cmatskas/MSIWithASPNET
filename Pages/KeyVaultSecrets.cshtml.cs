@@ -4,6 +4,7 @@ using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace demo.Pages
@@ -27,7 +28,19 @@ namespace demo.Pages
             ConfigSetting = configuration["SomeConfigValueFromKV"];
             try
             {
-                AzureServiceTokenProvider azureServiceTokenProvider = new AzureServiceTokenProvider();
+                var userAssignedId = configuration["UserAssignedId"];
+
+                AzureServiceTokenProvider azureServiceTokenProvider;
+
+                if (string.IsNullOrEmpty(userAssignedId))
+                {
+                    azureServiceTokenProvider = new AzureServiceTokenProvider();
+                }
+                else
+                {
+                    azureServiceTokenProvider = new AzureServiceTokenProvider($"RunAs=App;AppId={userAssignedId}");
+                }
+
                 KeyVaultClient keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
                 var secret = await keyVaultClient.GetSecretAsync("https://cm-identity-kv.vault.azure.net/secrets/KVSercret")
                         .ConfigureAwait(false);
